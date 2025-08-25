@@ -34,3 +34,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AI configuration files (excluded from version control)
+.github/chatmodes/
+.github/instructions/
+.github/prompts/
+.github/copilot-instructions.md
+
+# Project documentation (excluded from version control)
+PazAnimal-ERS_IEEE830/
