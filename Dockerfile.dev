@@ -1,0 +1,19 @@
+# Dockerfile optimizado para desarrollo con hot-reload
+FROM node:18-alpine
+
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+# Install dependencies
+COPY package.json pnpm-lock.yaml* ./
+RUN corepack enable pnpm && pnpm i
+
+# Copy source code
+COPY . .
+
+# Generate Prisma client
+RUN npx prisma generate
+
+EXPOSE 3000
+
+CMD ["pnpm", "dev"]

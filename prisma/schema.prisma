@@ -1,0 +1,359 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                      String                @id @default(cuid())
+  email                   String                @unique
+  name                    String?
+  password                String?
+  image                   String?
+  emailVerified           DateTime?
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  accounts                Account[]
+  actividadesCreadas      ActividadVoluntario[] @relation("ActividadCreatedBy")
+  actividadesActualizadas ActividadVoluntario[] @relation("ActividadUpdatedBy")
+  auditLogs               AuditLog[]
+  donaciones              Donacion[]
+  eventos                 Evento[]
+  inscripciones           InscripcionEvento[]
+  publicaciones           Publicacion[]
+  sessions                Session[]
+  roles                   UserRole[]
+  voluntariosCreados      Voluntario[]          @relation("VoluntarioCreatedBy")
+  voluntariosActualizados Voluntario[]          @relation("VoluntarioUpdatedBy")
+
+  @@map("users")
+}
+
+model Role {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
+  permissions Json?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  users       UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  id     String @id @default(cuid())
+  userId String
+  roleId String
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  entity    String?
+  entityId  String?
+  details   Json?
+  ipAddress String?
+  userAgent String?
+  userId    String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Publicacion {
+  id               String                @id @default(cuid())
+  titulo           String
+  slug             String                @unique
+  resumen          String?
+  contenido        String
+  destacada        Boolean               @default(false)
+  publicada        Boolean               @default(false)
+  fechaPublicacion DateTime?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  metaTitulo       String?
+  metaDescripcion  String?
+  palabrasClave    String?
+  imagenDestacada  String?
+  altImagen        String?
+  autorId          String
+  categoriaId      String?
+  autor            User                  @relation(fields: [autorId], references: [id])
+  categoria        CategoriaPublicacion? @relation(fields: [categoriaId], references: [id])
+
+  @@map("publicaciones")
+}
+
+model CategoriaPublicacion {
+  id            String        @id @default(cuid())
+  nombre        String        @unique
+  slug          String        @unique
+  descripcion   String?
+  color         String?       @default("#10B981")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  publicaciones Publicacion[]
+
+  @@map("categorias_publicacion")
+}
+
+model Evento {
+  id              String              @id @default(cuid())
+  titulo          String
+  slug            String              @unique
+  descripcion     String
+  fechaInicio     DateTime
+  fechaFin        DateTime?
+  ubicacion       String?
+  direccion       String?
+  latitud         Float?
+  longitud        Float?
+  esVirtual       Boolean             @default(false)
+  enlaceVirtual   String?
+  cupoMaximo      Int?
+  precio          Float?              @default(0)
+  imagen          String?
+  publicado       Boolean             @default(false)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  metaTitulo      String?
+  metaDescripcion String?
+  organizadorId   String
+  organizador     User                @relation(fields: [organizadorId], references: [id])
+  inscripciones   InscripcionEvento[]
+
+  @@map("eventos")
+}
+
+model InscripcionEvento {
+  id          String            @id @default(cuid())
+  eventoId    String
+  usuarioId   String
+  estado      EstadoInscripcion @default(PENDIENTE)
+  comentarios String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  evento      Evento            @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  usuario     User              @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([eventoId, usuarioId])
+  @@map("inscripciones_evento")
+}
+
+model Voluntario {
+  id              String                @id @default(cuid())
+  nombre          String
+  apellido        String
+  email           String                @unique
+  telefono        String?
+  whatsapp        String?
+  fechaNacimiento DateTime?
+  direccion       String?
+  ciudad          String?
+  provincia       String?
+  pais            String?
+  codigoPostal    String?
+  dni             String?               @unique
+  cuil            String?               @unique
+  fechaIngreso    DateTime              @default(now())
+  estado          EstadoVoluntario      @default(ACTIVO)
+  motivacion      String?
+  experiencia     String?
+  disponibilidad  String?
+  habilidades     String?
+  areas           AreaVoluntariado[]
+  qrCode          String?               @unique
+  observaciones   String?
+  slug            String                @unique
+  visible         Boolean               @default(true)
+  metaTitulo      String?
+  metaDescripcion String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  createdBy       String?
+  updatedBy       String?
+  actividades     ActividadVoluntario[]
+  horarios        HorarioVoluntario[]
+  creator         User?                 @relation("VoluntarioCreatedBy", fields: [createdBy], references: [id])
+  updater         User?                 @relation("VoluntarioUpdatedBy", fields: [updatedBy], references: [id])
+
+  @@map("voluntarios")
+}
+
+model ActividadVoluntario {
+  id            String          @id @default(cuid())
+  voluntarioId  String
+  titulo        String
+  descripcion   String?
+  fecha         DateTime
+  duracion      Int?
+  tipo          TipoActividad
+  estado        EstadoActividad @default(PROGRAMADA)
+  observaciones String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  createdBy     String?
+  updatedBy     String?
+  creator       User?           @relation("ActividadCreatedBy", fields: [createdBy], references: [id])
+  updater       User?           @relation("ActividadUpdatedBy", fields: [updatedBy], references: [id])
+  voluntario    Voluntario      @relation(fields: [voluntarioId], references: [id], onDelete: Cascade)
+
+  @@map("actividades_voluntario")
+}
+
+model HorarioVoluntario {
+  id           String     @id @default(cuid())
+  voluntarioId String
+  diaSemana    DiaSemana
+  horaInicio   String
+  horaFin      String
+  activo       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  voluntario   Voluntario @relation(fields: [voluntarioId], references: [id], onDelete: Cascade)
+
+  @@map("horarios_voluntario")
+}
+
+model Donacion {
+  id                String         @id @default(cuid())
+  monto             Float
+  moneda            String         @default("ARS")
+  estado            EstadoDonacion @default(PENDIENTE)
+  donante           String?
+  email             String?
+  telefono          String?
+  esAnonima         Boolean        @default(false)
+  mensaje           String?
+  externalReference String?        @unique
+  paymentId         String?        @unique
+  fechaPago         DateTime?
+  metodoPago        String?
+  userId            String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  usuario           User?          @relation(fields: [userId], references: [id])
+
+  @@map("donaciones")
+}
+
+enum EstadoInscripcion {
+  PENDIENTE
+  CONFIRMADA
+  CANCELADA
+  ASISTIO
+  NO_ASISTIO
+}
+
+enum EstadoVoluntario {
+  ACTIVO
+  INACTIVO
+  SUSPENDIDO
+  BAJA
+}
+
+enum AreaVoluntariado {
+  CUIDADO_ANIMALES
+  VETERINARIA
+  LIMPIEZA
+  MANTENIMIENTO
+  TRANSPORTE
+  ADMINISTRACION
+  COMUNICACION
+  EDUCACION
+  EVENTOS
+  RECAUDACION
+  FOTOGRAFIA
+  ADOPCIONES
+  SOCIALIZACION
+}
+
+enum TipoActividad {
+  CUIDADO
+  LIMPIEZA
+  ALIMENTACION
+  SOCIALIZACION
+  TRANSPORTE
+  VETERINARIA
+  EVENTO
+  CAPACITACION
+  ADMINISTRACION
+  MANTENIMIENTO
+  COMUNICACION
+  OTRO
+}
+
+enum EstadoActividad {
+  PROGRAMADA
+  EN_PROGRESO
+  COMPLETADA
+  CANCELADA
+  REPROGRAMADA
+}
+
+enum DiaSemana {
+  LUNES
+  MARTES
+  MIERCOLES
+  JUEVES
+  VIERNES
+  SABADO
+  DOMINGO
+}
+
+enum EstadoDonacion {
+  PENDIENTE
+  PROCESANDO
+  APROBADA
+  RECHAZADA
+  CANCELADA
+  REEMBOLSADA
+}
